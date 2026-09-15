@@ -1,9 +1,7 @@
-
-scrapy==2.11.2
-scrapy-playwright==0.0.41
-playwright==1.47.0
+scrapy==2.16.0
+scrapy-playwright==0.0.48
+playwright==1.50.0
 pymongo==4.9.1
 fake-useragent==1.5.1
 requests==2.32.3
-twisted==24.7.0
 mongomock==4.1.2
