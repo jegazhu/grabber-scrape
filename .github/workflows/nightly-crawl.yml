@@ -35,9 +35,28 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Verify Playwright browsers
+      - name: Ensure Playwright browser
         run: |
-          python -c "from playwright.sync_api import sync_playwright;                      p = sync_playwright().start();                      print('Chromium:', p.chromium.executable_path);                      p.stop()"
+          # Version-locked install — matches playwright==1.47.0 in requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Verify Chromium launches
+        run: |
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as p:
+              browser = p.chromium.launch(
+                  headless=True,
+                  args=["--no-sandbox", "--disable-dev-shm-usage"],
+              )
+              page = browser.new_page()
+              page.goto("https://quotes.toscrape.com/js/", wait_until="networkidle")
+              page.wait_for_selector("div.quote", timeout=15000)
+              n = len(page.query_selector_all("div.quote"))
+              print(f"Found {n} quotes in a real browser")
+              assert n > 0, "Chromium launched but rendered no quotes"
+              browser.close()
+          PY
 
       - name: Run crawl
         id: crawl

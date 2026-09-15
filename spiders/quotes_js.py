@@ -14,7 +14,8 @@ class QuotesJSSpider(scrapy.Spider):
                     "playwright": True,
                     "playwright_include_page": False,
                     "playwright_page_methods": [
-                        PageMethod("wait_for_selector", "div.quote"),
+                        PageMethod("wait_for_load_state", "networkidle"),
+                        PageMethod("wait_for_selector", "div.quote", timeout=45000),
                         # Uncomment to block images/css → faster:
                         # PageMethod("route", "**/*.{png,jpg,css}", lambda r: r.abort()),
                     ],

@@ -1,3 +1,4 @@
+
 scrapy==2.11.2
 scrapy-playwright==0.0.41
 playwright==1.47.0
