@@ -1,0 +1,88 @@
+
+name: Nightly Crawl
+
+on:
+  schedule:
+    # 06:17 UTC every day — off-the-hour avoids GitHub's peak cron congestion
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      spider:
+        description: "Spider to run"
+        required: true
+        default: "quotes_js"
+        type: choice
+        options: [quotes_static, quotes_js]
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Run inside the exact image we ship — no "works locally" drift
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.47.0-jammy
+      options: --user root
+
+    env:
+      MONGO_URI: ${{ secrets.MONGO_URI }}
+      MONGO_DB: stealth_scrape
+      SPIDER: ${{ github.event.inputs.spider || 'quotes_js' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify Playwright browsers
+        run: |
+          python -c "from playwright.sync_api import sync_playwright; \
+                     p = sync_playwright().start(); \
+                     print('Chromium:', p.chromium.executable_path); \
+                     p.stop()"
+
+      - name: Run crawl
+        id: crawl
+        run: |
+          mkdir -p output logs
+          python scripts/run_crawl.py "$SPIDER" \
+            --mongo-uri "$MONGO_URI" \
+            2>&1 | tee logs/crawl.log
+          # Surface the machine-readable summary as a step output
+          grep '^CRAWL_SUMMARY=' logs/crawl.log \
+            | tail -n1 \
+            | sed 's/^CRAWL_SUMMARY=//' > /tmp/summary.json
+          echo "summary=$(cat /tmp/summary.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Assert non-empty result
+        run: |
+          ITEMS=$(python -c "import json;print(json.load(open('/tmp/summary.json'))['items'])")
+          echo "Scraped $ITEMS items"
+          if [ "$ITEMS" -lt 1 ]; then
+            echo "::error::Crawl returned zero items — treating as failure"
+            exit 1
+          fi
+
+      - name: Upload crawl artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crawl-${{ env.SPIDER }}-${{ github.run_id }}
+          path: |
+            output/*.json
+            logs/*.log
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Job summary
+        if: always()
+        run: |
+          if [ -f /tmp/summary.json ]; then
+            echo "## Crawl summary" >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat /tmp/summary.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi

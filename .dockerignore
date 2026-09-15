@@ -1,0 +1,15 @@
+
+output/
+logs/
+*.log
+__pycache__/
+*.pyc
+.git/
+.github/
+.ipynb_checkpoints/
+.pytest_cache/
+venv/
+.venv/
+.env
+*.md
+!README.md

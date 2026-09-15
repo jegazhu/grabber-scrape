@@ -1,0 +1,38 @@
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports: ["27017:27017"]
+    volumes: ["mongo_data:/data/db"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  scraper-static:
+    build: .
+    depends_on:
+      mongo: {condition: service_healthy}
+    environment:
+      MONGO_URI: "mongodb://mongo:27017"
+      MONGO_DB: "stealth_scrape"
+    command: ["quotes_static", "--mongo-uri", "mongodb://mongo:27017"]
+    volumes:
+      - ./output:/app/output
+      - ./logs:/app/logs
+
+  scraper-js:
+    build: .
+    depends_on:
+      mongo: {condition: service_healthy}
+    environment:
+      MONGO_URI: "mongodb://mongo:27017"
+    command: ["quotes_js", "--mongo-uri", "mongodb://mongo:27017"]
+    volumes:
+      - ./output:/app/output
+      - ./logs:/app/logs
+
+volumes:
+  mongo_data:

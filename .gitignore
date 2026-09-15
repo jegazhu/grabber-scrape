@@ -1,0 +1,23 @@
+
+# Secrets
+.env
+*.env
+secrets.json
+
+# Outputs
+output/
+logs/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
