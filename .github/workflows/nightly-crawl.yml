@@ -1,9 +1,8 @@
 
-name: Nightly Crawl
+name: Nightly Crawl (Mock DB)
 
 on:
   schedule:
-    # 06:17 UTC every day — off-the-hour avoids GitHub's peak cron congestion
     - cron: "17 6 * * *"
   workflow_dispatch:
     inputs:
@@ -19,15 +18,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    # Run inside the exact image we ship — no "works locally" drift
     container:
       image: mcr.microsoft.com/playwright/python:v1.47.0-jammy
       options: --user root
 
     env:
-      MONGO_URI: ${{ secrets.MONGO_URI }}
       MONGO_DB: stealth_scrape
       SPIDER: ${{ github.event.inputs.spider || 'quotes_js' }}
+      # We no longer need the MONGO_URI secret here
 
     steps:
       - uses: actions/checkout@v4
@@ -39,22 +37,15 @@ jobs:
 
       - name: Verify Playwright browsers
         run: |
-          python -c "from playwright.sync_api import sync_playwright; \
-                     p = sync_playwright().start(); \
-                     print('Chromium:', p.chromium.executable_path); \
-                     p.stop()"
+          python -c "from playwright.sync_api import sync_playwright;                      p = sync_playwright().start();                      print('Chromium:', p.chromium.executable_path);                      p.stop()"
 
       - name: Run crawl
         id: crawl
         run: |
           mkdir -p output logs
-          python scripts/run_crawl.py "$SPIDER" \
-            --mongo-uri "$MONGO_URI" \
-            2>&1 | tee logs/crawl.log
-          # Surface the machine-readable summary as a step output
-          grep '^CRAWL_SUMMARY=' logs/crawl.log \
-            | tail -n1 \
-            | sed 's/^CRAWL_SUMMARY=//' > /tmp/summary.json
+          # The --mock flag tells our script to use the in-memory DB
+          python scripts/run_crawl.py "$SPIDER" --mock             2>&1 | tee logs/crawl.log
+          grep '^CRAWL_SUMMARY=' logs/crawl.log             | tail -n1             | sed 's/^CRAWL_SUMMARY=//' > /tmp/summary.json
           echo "summary=$(cat /tmp/summary.json)" >> "$GITHUB_OUTPUT"
 
       - name: Assert non-empty result
