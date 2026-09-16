@@ -15,11 +15,7 @@ on:
 jobs:
   crawl:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    container:
-      image: mcr.microsoft.com/playwright/python:v1.63.0-noble
-      options: --user root
+    timeout-minutes: 20
 
     env:
       MONGO_DB: stealth_scrape
@@ -27,6 +23,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
 
       - name: Install Python deps
         run: |
@@ -36,7 +37,7 @@ jobs:
       - name: Freeze resolved versions
         run: pip freeze > /tmp/resolved-versions.txt
 
-      - name: Ensure Playwright browser
+      - name: Install Chromium for Playwright
         run: python -m playwright install --with-deps chromium
 
       - name: Verify Chromium launches
@@ -79,7 +80,7 @@ jobs:
             exit 1
           fi
 
-      - name: Upload crawl artifacts
+      - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v5
         with:
