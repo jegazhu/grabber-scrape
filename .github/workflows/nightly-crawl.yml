@@ -64,7 +64,10 @@ jobs:
         run: |
           mkdir -p output logs
           set -o pipefail
+          # We pass settings overrides explicitly to ensure Scrapy uses Playwright's async loop on the runner
           python scripts/run_crawl.py "$SPIDER" --mock \
+            -s TWISTED_REACTOR=twisted.internet.asyncioreactor.AsyncioSelectorReactor \
+            -s DOWNLOAD_HANDLERS='{"http": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler", "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler"}' \
             2>&1 | tee logs/crawl.log
           grep '^CRAWL_SUMMARY=' logs/crawl.log \
             | tail -n1 \
