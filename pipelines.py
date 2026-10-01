@@ -20,7 +20,8 @@ def _content_hash(item):
 
 
 class MongoPipeline:
-    def __init__(self, uri, db, collection, use_mock):
+    def __init__(self, crawler, uri, db, collection, use_mock):
+        self.crawler = crawler
         self.uri = uri
         self.db_name = db
         self.coll_name = collection
@@ -35,6 +36,7 @@ class MongoPipeline:
     def from_crawler(cls, crawler):
         s = crawler.settings
         return cls(
+            crawler,
             uri=s.get("MONGO_URI"),
             db=s.get("MONGO_DB"),
             collection=s.get("MONGO_COLLECTION"),
