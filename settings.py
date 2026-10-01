@@ -41,3 +41,12 @@ MONGO_USE_MOCK   = True
 
 PROXY_LIST = []
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
+
+# Enable the asyncio twisted reactor for scrapy-playwright support
+TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
+
+# Configure download handlers for headless browser requests
+DOWNLOAD_HANDLERS = {
+    "http": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
+    "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
+}
